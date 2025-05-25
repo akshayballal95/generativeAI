@@ -13,6 +13,7 @@ class BinaryCLT:
     A tree-shaped Bayesian Network learned through the Chow-Liu Algorithm.
     Allows tractable inference for binary variables.
     """
+
     def __init__(self, data, root: int = None, alpha: float = 0.01):
         """
         Initialize and learn a Chow-Liu Tree from binary data.
@@ -69,6 +70,8 @@ class BinaryCLT:
         
         # Set root's predecessor to -1
         predecessors[root] = -1
+
+        print(predecessors)
         
         return predecessors
     
@@ -155,8 +158,6 @@ class BinaryCLT:
     def get_tree(self):
         """Return the list of predecessors representing the tree structure."""
         return self.tree
-    
-
     
     def log_prob(self, x, exhaustive: bool = False):
         """
@@ -309,6 +310,7 @@ class BinaryCLT:
         Returns:
             numpy array of shape (n_samples, n_features) containing samples
         """
+
         samples = np.zeros((n_samples, self.n_features), dtype=int)
         
         # Get sampling order (top-down in tree)
