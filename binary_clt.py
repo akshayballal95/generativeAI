@@ -6,6 +6,7 @@ import itertools
 import csv
 import networkx as nx
 import matplotlib.pyplot as plt
+import tqdm
 
 class BinaryCLT:
     """
@@ -176,7 +177,7 @@ class BinaryCLT:
         
         if exhaustive:
             # Exhaustive inference: sum over all possible assignments of unobserved variables
-            for i in range(n_queries):
+            for i in tqdm.tqdm(range(n_queries), desc="Exhaustive inference"):
                 query = x[i]
                 observed_mask = ~np.isnan(query)
                 unobserved_mask = np.isnan(query)
@@ -227,6 +228,7 @@ class BinaryCLT:
         unobserved_indices = np.where(unobserved_mask)[0]
         log_prob = -np.inf
         
+    
         for assignment in itertools.product([0,1], repeat=n_unobserved):
             # Create complete assignment
             complete_x = x.copy()
