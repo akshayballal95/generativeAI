@@ -151,7 +151,7 @@ class BinaryCLT:
                 # Compute conditional probabilities
                 parent_counts = np.sum(joint_counts, axis=1)
                 for a in range(2):
-                    if parent_counts[a] > 0:
+                    if parent_counts[a] > 0:    
                         log_params[i,a,:] = np.log(joint_counts[a,:] / parent_counts[a])
         
         return log_params
@@ -252,7 +252,6 @@ class BinaryCLT:
             float: log probability of the marginal query
         """
         observed_mask = ~np.isnan(x)
-        unobserved_mask = np.isnan(x)
         
         # Get elimination order (bottom-up in tree)
         elimination_order = []
