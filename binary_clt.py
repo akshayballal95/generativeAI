@@ -242,7 +242,14 @@ class BinaryCLT:
     def _compute_log_prob_marginal_efficient(self, x):
         """
         Compute log probability for a marginal query using efficient inference.
-        Uses variable elimination following the tree structure.
+        Uses variable elimination following the tree structure with the sum-product algorithm.
+        
+        Args:
+            x: numpy array of shape (n_features,) with values in {0., 1., np.nan}
+               np.nan indicates unobserved variables
+               
+        Returns:
+            float: log probability of the marginal query
         """
         observed_mask = ~np.isnan(x)
         unobserved_mask = np.isnan(x)
@@ -264,43 +271,83 @@ class BinaryCLT:
         leaves = [i for i in range(self.n_features) if i not in self.tree]
         for leaf in leaves:
             visit(leaf)
+            
+        # Visit remaining nodes to complete elimination order
+        root = np.where(self.tree == -1)[0][0]
+        visit(root)
         
-        # Initialize factors
-        factors = []
-        for i in range(self.n_features):
-            if observed_mask[i]:
-                # Create factor for observed variable
-                factor = np.zeros((2,))
-                factor[int(x[i])] = 1
-                factors.append((i, factor))
-            else:
-                # Create factor for unobserved variable
-                parent = self.tree[i]
-                if parent == -1:  # Root node
-                    factor = np.exp(self.log_params[i,0,:])
-                else:
-                    factor = np.exp(self.log_params[i,int(x[parent]),:])
-                factors.append((i, factor))
+        # Initialize messages dictionary
+        # messages[i][parent_val] = message from node i to its parent when parent has value parent_val
+        messages = {}
         
-        # Eliminate variables
+        # Compute messages from leaves to root
         for node in elimination_order:
-            if unobserved_mask[node]:
-                # Find factors involving this variable
-                node_factors = [(i, f) for i, f in factors if i == node]
-                if node_factors:
-                    # Multiply factors
-                    result = node_factors[0][1]
-                    for _, f in node_factors[1:]:
-                        result = result * f
-                    # Sum out variable
-                    result = np.sum(result)
-                    # Remove old factors and add new one
-                    factors = [(i, f) for i, f in factors if i != node]
-                    factors.append((None, result))
+            if node == root:
+                continue
+                
+            parent = self.tree[node]
+            messages[node] = {}
+            
+            # Get children's messages to this node
+            children = np.where(self.tree == node)[0]
+            
+            # If node is observed
+            if observed_mask[node]:
+                node_val = int(x[node])
+                # Message when parent = 0
+                msg_0 = self.log_params[node, 0, node_val]
+                # Message when parent = 1
+                msg_1 = self.log_params[node, 1, node_val]
+                
+                # Add children's messages if any
+                for child in children:
+                    msg_0 += messages[child][0]
+                    msg_1 += messages[child][1]
+                    
+                messages[node][0] = msg_0
+                messages[node][1] = msg_1
+                
+            # If node is unobserved
+            else:
+                # For each parent value
+                for parent_val in [0, 1]:
+                    # Sum over node values
+                    msg = -np.inf  # Initialize in log space
+                    for node_val in [0, 1]:
+                        curr_msg = self.log_params[node, parent_val, node_val]
+                        
+                        # Add children's messages
+                        for child in children:
+                            curr_msg += messages[child][node_val]
+                            
+                        msg = np.logaddexp(msg, curr_msg)
+                    
+                    messages[node][parent_val] = msg
         
-        # Final result should be a single factor
-        assert len(factors) == 1
-        return np.log(factors[0][1])
+        # Compute final probability at root
+        root_children = np.where(self.tree == root)[0]
+        
+        if observed_mask[root]:
+            root_val = int(x[root])
+            log_prob = self.log_params[root, 0, root_val]  # Root's prior
+            
+            # Add children's messages
+            for child in root_children:
+                log_prob += messages[child][root_val]
+                
+        else:
+            # Sum over root values
+            log_prob = -np.inf  # Initialize in log space
+            for root_val in [0, 1]:
+                curr_prob = self.log_params[root, 0, root_val]  # Root's prior
+                
+                # Add children's messages
+                for child in root_children:
+                    curr_prob += messages[child][root_val]
+                    
+                log_prob = np.logaddexp(log_prob, curr_prob)
+            
+        return log_prob
     
     def sample(self, n_samples: int):
         """

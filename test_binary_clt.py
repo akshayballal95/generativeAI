@@ -71,31 +71,33 @@ def main():
     print("\nComparing inference methods...")
     
     # Test exhaustive inference
-    # start_t = time.time()
-    # print("Shape of test_data: ", test_data.shape)
-    # lp_exhaustive = clt.log_prob(marginal_data[:100], exhaustive=True)
-    # exhaustive_time = time.time() - start_t
+    start_t = time.time()
+    print("Shape of test_data: ", test_data.shape)
+    lp_exhaustive = clt.log_prob(marginal_data[:1000], exhaustive=True)
+    exhaustive_time = time.time() - start_t
 
     
-    # # Display results
-    # print("\nResults for test queries:")
-    # print("Exhaustive inference:")
+    # Display results
+    print("\nResults for test queries:")
+    print("Exhaustive inference:")
     # print(lp_exhaustive)
-    # print(f"Time taken: {exhaustive_time:.4f} seconds")
+    print(np.mean(lp_exhaustive))
+    print(f"Time taken: {exhaustive_time:.4f} seconds")
     
-    # # Test efficient inference
-    # start_t = time.time()
-    # lp_efficient = clt.log_prob(marginal_data, exhaustive=False)
-    # efficient_time = time.time() - start_t
+    # Test efficient inference
+    start_t = time.time()
+    lp_efficient = clt.log_prob(marginal_data[:1000], exhaustive=False)
+    efficient_time = time.time() - start_t
 
     
-    # print("\nEfficient inference:")
+    print("\nEfficient inference:")
     # print(lp_efficient)
-    # print(f"Time taken: {efficient_time:.4f} seconds")
+    print(np.mean(lp_efficient))
+    print(f"Time taken: {efficient_time:.4f} seconds")
     
-    # # Compare results between methods
-    # print("\nDifference in results:")
-    # print(np.abs(lp_exhaustive - lp_efficient))
+    # Compare results between methods
+    print("\nDifference in results:")
+    print(np.mean(np.abs(lp_exhaustive - lp_efficient)))
 
 
     # generate queries with all 2^D possible states for D = 16
