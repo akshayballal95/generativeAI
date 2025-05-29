@@ -13,6 +13,8 @@ class BinaryCLT:
 
         self.tree = self.get_tree()
 
+        self.log_params = self.get_log_params()
+
         print(self.tree)
 
     def get_tree(self):
@@ -59,4 +61,46 @@ class BinaryCLT:
 
         return predecessors
     
-    
+    def get_log_params(self):
+
+        log_params = np.zeros((self.data.shape[1], 2, 2))
+
+        for i in range(self.data.shape[1]):
+
+            parent = self.tree[i]
+
+            if parent == -1:
+                # Counting two outcomes 0 and 1
+                frequency = np.zeros(2)
+
+                for j in self.data:
+                    frequency[int(j[i])] += 1
+                
+                # Applying laplace smoothing
+                frequency += 2*self.alpha
+
+                # Calculating prior probability
+                prior_prob = frequency / (self.data.shape[0] + 4*self.alpha)
+
+                # Assigning log params
+                log_params[i,0,:] = log_params[i,1,:] = np.log(prior_prob) # Will be the same since there is no conditional dependence
+        
+            else:
+
+                conditional_frequency = np.zeros((2,2))
+
+                for j in self.data:
+                    conditional_frequency[int(j[parent]), int(j[i])] += 1
+
+                # Applying laplace smoothing
+                conditional_frequency += self.alpha
+
+                # Calculate conditional probability
+                frequency_of_parent = np.sum(conditional_frequency, axis =1)
+
+                for var in range(2):
+                    if frequency_of_parent[var] > 2:
+                        log_params[i,var,:] = np.log(conditional_frequency[var,:] / frequency_of_parent[var])
+
+        return log_params
+
