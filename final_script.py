@@ -20,19 +20,26 @@ class BinaryCLT:
 
     def get_tree(self):
 
+        #Calculation of mutual information matrix
         def mutual_information_calculation(data, alpha,  i , j):
             contingency_matrix = np.zeros((2,2))
+
+            #Getting the counts of the outcomes
             for individual_row in data:
                 contingency_matrix[int(individual_row[i]), int(individual_row[j])] += 1
 
+            #Applying smoothening
             contingency_matrix += alpha
 
+            # Joint probability between variables i and j
             joint_probability = contingency_matrix / (data.shape[0] + 4* alpha)
 
+            # Marginal probability of both a and b
             marginal_i = np.sum(joint_probability, axis = 1)
             marginal_j = np.sum(joint_probability, axis = 0)
 
             mutual_information = 0
+            # Calculation Mutual information value
             for a in range(joint_probability.shape[0]):
                 for b in range(joint_probability.shape[1]):
                     mutual_information += joint_probability[a,b] * np.log(joint_probability[a,b] / (marginal_i[a] * marginal_j[b]))
@@ -41,16 +48,19 @@ class BinaryCLT:
         
         mutual_information_matrix = np.zeros((self.data.shape[1], self.data.shape[1]))
 
+        # Calculating the MI matrix between all the variables
         for i in range(self.data.shape[1]):
             for j in range(i+1 , self.data.shape[1]):
                 mutual_information = mutual_information_calculation(self.data , self.alpha, i, j)
                 mutual_information_matrix[i,j] = mutual_information
                 mutual_information_matrix[j,i] = mutual_information
 
+        # Forming a tree based on the maximum MI value between variables
         minimum_tree = minimum_spanning_tree(-mutual_information_matrix)
 
         adjacency_matrix = minimum_tree.toarray()
 
+        # Making it undirected between the nodes since minimum spanning tree returns directed connections
         adjacency_matrix = adjacency_matrix + adjacency_matrix.T
 
         if self.root is None:
@@ -58,6 +68,7 @@ class BinaryCLT:
 
         _, predecessors = breadth_first_order(adjacency_matrix, self.root, directed=True, return_predecessors=True)
 
+        # Setting the parent of root node as -1
         predecessors[self.root] = -1
 
         return predecessors
